@@ -12,7 +12,7 @@ import { AlreadyPlayed } from './AlreadyPlayed';
 import type { DailyResult } from './AlreadyPlayed';
 import { Button } from '@/components/ui/Button';
 import { TopoBackground } from '@/components/ui/TopoBackground';
-import type { RoundClue } from '@/types';
+import type { RoundClue, RoundResult } from '@/types';
 
 export type Unit = 'm' | 'ft';
 
@@ -24,8 +24,9 @@ function getTodayString(): string {
 }
 
 function formatDisplayDate(dateStr: string): string {
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  return new Date(y, (mo ?? 1) - 1, d).toLocaleDateString('en-US', {
+  const parts = dateStr.split('-').map(Number);
+  const [y = 2000, mo = 1, d = 1] = parts;
+  return new Date(y, mo - 1, d).toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric',
   });
 }

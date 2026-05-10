@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
+
+export const dynamic = 'force-dynamic';
 import { sessions, sessionRounds } from '@/db/schema';
 import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
 import { calculateScore } from '@/lib/scoring';
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const now = Date.now();
 
     // Atomic conditional UPDATE — only updates if guess IS NULL (prevents double-submission)
-    const updateResult = db
+    const updateResult = await db
       .update(sessionRounds)
       .set({
         guess,
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       )
       .run();
 
-    if (updateResult.changes === 0) {
+    if (updateResult.rowsAffected === 0) {
       return NextResponse.json(
         { error: 'Round already submitted' },
         { status: 409 }
@@ -90,7 +92,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if ALL 5 rounds are now submitted (server-side, not based on client roundIndex)
-    const submittedCount = db
+    const submittedCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(sessionRounds)
       .where(
@@ -102,7 +104,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .get();
 
     if (submittedCount?.count === 5) {
-      db.update(sessions)
+      await db.update(sessions)
         .set({ completedAt: now })
         .where(eq(sessions.id, sessionId))
         .run();

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/db/client';
+
+export const dynamic = 'force-dynamic';
 import { sessions, sessionRounds } from '@/db/schema';
 import { randomUUID } from 'crypto';
 import locationsData from '@/data/locations.json';

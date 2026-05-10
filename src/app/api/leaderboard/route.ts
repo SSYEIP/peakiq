@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
+
+export const dynamic = 'force-dynamic';
 import { leaderboardEntries, sessionRounds, sessions } from '@/db/schema';
 import { desc, eq, and, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';

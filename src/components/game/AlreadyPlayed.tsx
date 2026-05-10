@@ -23,8 +23,9 @@ function getTimeUntilMidnight(): string {
 }
 
 function formatDate(dateStr: string): string {
-  const [y, mo, d] = dateStr.split('-').map(Number);
-  return new Date(y, (mo ?? 1) - 1, d).toLocaleDateString('en-US', {
+  const parts = dateStr.split('-').map(Number);
+  const [y = 2000, mo = 1, d = 1] = parts;
+  return new Date(y, mo - 1, d).toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
   });
 }
