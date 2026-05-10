@@ -1,0 +1,23 @@
+.container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  animation: topo-breathe 8s ease-in-out infinite;
+}
+
+@keyframes topo-breathe {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 0.9;
+  }
+}
