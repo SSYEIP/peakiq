@@ -33,18 +33,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { sessionId, roundIndex, guess } = parsed.data;
 
     // Verify session exists
-    const session = await db
+    const [session] = await db
       .select()
       .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+      .where(eq(sessions.id, sessionId));
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     // Get the round to find the locationId
-    const round = await db
+    const [round] = await db
       .select()
       .from(sessionRounds)
       .where(
@@ -52,8 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           eq(sessionRounds.sessionId, sessionId),
           eq(sessionRounds.roundIndex, roundIndex)
         )
-      )
-      .get();
+      );
 
     if (!round) {
       return NextResponse.json({ error: 'Round not found' }, { status: 404 });
@@ -81,10 +79,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           eq(sessionRounds.id, round.id),
           isNull(sessionRounds.guess)
         )
-      )
-      .run();
+      );
 
-    if (updateResult.rowsAffected === 0) {
+    if ((updateResult.rowCount ?? 0) === 0) {
       return NextResponse.json(
         { error: 'Round already submitted' },
         { status: 409 }
@@ -92,7 +89,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check if ALL 5 rounds are now submitted (server-side, not based on client roundIndex)
-    const submittedCount = await db
+    const [submittedCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(sessionRounds)
       .where(
@@ -100,14 +97,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           eq(sessionRounds.sessionId, sessionId),
           isNotNull(sessionRounds.guess)
         )
-      )
-      .get();
+      );
 
-    if (submittedCount?.count === 5) {
+    if (Number(submittedCount?.count) === 5) {
       await db.update(sessions)
         .set({ completedAt: now })
-        .where(eq(sessions.id, sessionId))
-        .run();
+        .where(eq(sessions.id, sessionId));
     }
 
     const result: RoundResult = {

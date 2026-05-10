@@ -49,11 +49,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { playerName, sessionId } = parsed.data;
 
     // Check session exists and is completed
-    const session = await db
+    const [session] = await db
       .select()
       .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+      .where(eq(sessions.id, sessionId));
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -67,11 +66,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check for duplicate leaderboard entry
-    const existing = await db
+    const [existing] = await db
       .select()
       .from(leaderboardEntries)
-      .where(eq(leaderboardEntries.sessionId, sessionId))
-      .get();
+      .where(eq(leaderboardEntries.sessionId, sessionId));
 
     if (existing) {
       return NextResponse.json(
@@ -89,8 +87,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           eq(sessionRounds.sessionId, sessionId),
           isNotNull(sessionRounds.score)
         )
-      )
-      .all();
+      );
 
     if (dbRounds.length !== 5) {
       return NextResponse.json(
@@ -110,11 +107,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sessionId,
     });
 
-    const entry = await db
+    const [entry] = await db
       .select()
       .from(leaderboardEntries)
-      .where(eq(leaderboardEntries.sessionId, sessionId))
-      .get();
+      .where(eq(leaderboardEntries.sessionId, sessionId));
 
     return NextResponse.json(entry, { status: 201 });
   } catch (error) {

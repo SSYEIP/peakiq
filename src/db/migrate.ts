@@ -1,4 +1,4 @@
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { migrate } from 'drizzle-orm/neon-http/migrator';
 import { db } from './client';
 import path from 'path';
 
