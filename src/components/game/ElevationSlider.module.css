@@ -5,23 +5,26 @@
   align-items: center;
 }
 
+/* Full-width background gradient — always fully visible */
 .track {
   position: absolute;
   width: 100%;
-  height: 6px;
-  border-radius: 9999px;
-  opacity: 0.3;
+  height: 8px;
+  border-radius: 2px;
+  opacity: 1;
 }
 
+/* Progress fill overlay */
 .trackFill {
   position: absolute;
   left: 0;
-  height: 6px;
-  border-radius: 9999px;
+  height: 8px;
+  border-radius: 2px 0 0 2px;
   transition: width 0.05s ease-out;
-  opacity: 0.8;
+  opacity: 0.55;
 }
 
+/* Invisible native input on top for interaction */
 .input {
   position: absolute;
   width: 100%;
@@ -37,14 +40,16 @@
   cursor: not-allowed;
 }
 
+/* Diamond-shaped thumb */
 .thumbGlow {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  border: 2px solid white;
+  width: 16px;
+  height: 16px;
+  transform: translateX(-50%) rotate(45deg);
+  border-radius: 2px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
   pointer-events: none;
-  transition: left 0.05s ease-out, background 0.2s ease, box-shadow 0.2s ease;
+  transition: left 0.05s ease-out, background 0.2s ease;
   z-index: 5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(0,0,0,0.15);
 }

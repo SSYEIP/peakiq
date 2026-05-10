@@ -1,4 +1,4 @@
-import type { GameState, GamePhase, RoundClue, RoundResult } from '@/types';
+import type { GameState, RoundClue, RoundResult } from '@/types';
 
 export type GameAction =
   | { type: 'START_LOADING' }
@@ -45,7 +45,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, currentGuess: action.payload };
 
     case 'SUBMIT_GUESS':
-      return { ...state, phase: 'loading' };
+      return { ...state, phase: 'loading', error: null };
 
     case 'ROUND_RESULT': {
       const newResults = [...state.results, action.payload];
@@ -77,7 +77,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...initialState };
 
     case 'SET_ERROR':
-      return { ...state, phase: 'idle', error: action.payload };
+      // If we were in a loading state (submitting guess), go back to round_active
+      // so the player can retry. Only go to idle if we were in idle/loading for game start.
+      return {
+        ...state,
+        phase: state.phase === 'loading' && state.sessionId !== null ? 'round_active' : 'idle',
+        error: action.payload,
+      };
 
     default:
       return state;

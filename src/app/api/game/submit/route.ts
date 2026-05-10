@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
 import { sessions, sessionRounds } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
 import { calculateScore } from '@/lib/scoring';
 import locationsData from '@/data/locations.json';
 import type { Location, RoundResult } from '@/types';
 import { z } from 'zod';
+import { MIN_ELEVATION, MAX_ELEVATION } from '@/lib/constants';
 
 const locations = locationsData as Location[];
 
 const SubmitSchema = z.object({
   sessionId: z.string().uuid(),
   roundIndex: z.number().int().min(0).max(4),
-  guess: z.number().int().min(-500).max(9000),
+  guess: z.number().int().min(MIN_ELEVATION).max(MAX_ELEVATION),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Get the round
+    // Get the round to find the locationId
     const round = await db
       .select()
       .from(sessionRounds)
@@ -56,14 +57,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Round not found' }, { status: 404 });
     }
 
-    if (round.guess !== null) {
-      return NextResponse.json(
-        { error: 'Round already submitted' },
-        { status: 409 }
-      );
-    }
-
-    // Find the location
+    // Find the location (must happen before update to calculate score)
     const location = locations.find((l) => l.id === round.locationId);
     if (!location) {
       return NextResponse.json({ error: 'Location not found' }, { status: 500 });
@@ -72,22 +66,46 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const score = calculateScore(location.elevation, guess);
     const now = Date.now();
 
-    // Update the round
-    await db
+    // Atomic conditional UPDATE — only updates if guess IS NULL (prevents double-submission)
+    const updateResult = db
       .update(sessionRounds)
       .set({
         guess,
         score,
         submittedAt: now,
       })
-      .where(eq(sessionRounds.id, round.id));
+      .where(
+        and(
+          eq(sessionRounds.id, round.id),
+          isNull(sessionRounds.guess)
+        )
+      )
+      .run();
 
-    // If last round, mark session complete
-    if (roundIndex === 4) {
-      await db
-        .update(sessions)
+    if (updateResult.changes === 0) {
+      return NextResponse.json(
+        { error: 'Round already submitted' },
+        { status: 409 }
+      );
+    }
+
+    // Check if ALL 5 rounds are now submitted (server-side, not based on client roundIndex)
+    const submittedCount = db
+      .select({ count: sql<number>`count(*)` })
+      .from(sessionRounds)
+      .where(
+        and(
+          eq(sessionRounds.sessionId, sessionId),
+          isNotNull(sessionRounds.guess)
+        )
+      )
+      .get();
+
+    if (submittedCount?.count === 5) {
+      db.update(sessions)
         .set({ completedAt: now })
-        .where(eq(sessions.id, sessionId));
+        .where(eq(sessions.id, sessionId))
+        .run();
     }
 
     const result: RoundResult = {

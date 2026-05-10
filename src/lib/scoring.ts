@@ -1,4 +1,4 @@
-const ELEVATION_RANGE = 9276; // 8849 - (-427)
+import { ELEVATION_RANGE } from './constants';
 
 export function calculateScore(actual: number, guess: number): number {
   return Math.max(0, Math.round(1000 * (1 - Math.abs(actual - guess) / ELEVATION_RANGE)));

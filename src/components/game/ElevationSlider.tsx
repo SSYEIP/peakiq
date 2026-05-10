@@ -2,10 +2,19 @@
 
 import React, { useCallback, useMemo } from 'react';
 import styles from './ElevationSlider.module.css';
+import { MIN_ELEVATION, MAX_ELEVATION } from '@/lib/constants';
+import type { Unit } from './GameOrchestrator';
 
-const MIN_ELEVATION = -427;
-const MAX_ELEVATION = 8849;
 const RANGE = MAX_ELEVATION - MIN_ELEVATION;
+
+function toFt(m: number) { return Math.round(m * 3.28084); }
+function formatElev(m: number, unit: Unit): string {
+  if (unit === 'ft') {
+    const ft = toFt(m);
+    return ft >= 0 ? `+${ft.toLocaleString()}ft` : `${ft.toLocaleString()}ft`;
+  }
+  return m >= 0 ? `+${m.toLocaleString()}m` : `${m.toLocaleString()}m`;
+}
 
 interface Landmark {
   elevation: number;
@@ -14,11 +23,10 @@ interface Landmark {
 }
 
 const LANDMARKS: Landmark[] = [
-  { elevation: -427, label: 'Dead Sea', icon: '💧' },
-  { elevation: 0, label: 'Sea Level', icon: '🌊' },
-  { elevation: 1609, label: 'Denver', icon: '🏙️' },
-  { elevation: 5364, label: 'Everest BC', icon: '⛺' },
-  { elevation: 8849, label: 'Everest', icon: '🏔️' },
+  { elevation: 0,    label: 'Sea Level',  icon: '〰' },
+  { elevation: 1609, label: 'Mile High',  icon: '◆' },
+  { elevation: 5364, label: 'Base Camp',  icon: '▲' },
+  { elevation: 8849, label: 'Summit',     icon: '⬛' },
 ];
 
 function elevationToPercent(elevation: number): number {
@@ -49,9 +57,10 @@ interface ElevationSliderProps {
   value: number;
   onChange: (value: number) => void;
   disabled?: boolean;
+  unit?: Unit;
 }
 
-export function ElevationSlider({ value, onChange, disabled = false }: ElevationSliderProps) {
+export function ElevationSlider({ value, onChange, disabled = false, unit = 'm' }: ElevationSliderProps) {
   const percent = useMemo(() => elevationToPercent(value), [value]);
   const thumbColor = useMemo(() => getGradientForPercent(percent), [percent]);
   const trackGradient = useMemo(() => {
@@ -70,8 +79,6 @@ export function ElevationSlider({ value, onChange, disabled = false }: Elevation
     [onChange]
   );
 
-  const formattedValue = value >= 0 ? `+${value.toLocaleString()}m` : `${value.toLocaleString()}m`;
-
   return (
     <div className="space-y-4 select-none">
       {/* Current value display */}
@@ -83,7 +90,7 @@ export function ElevationSlider({ value, onChange, disabled = false }: Elevation
           className="text-2xl font-bold font-mono transition-colors duration-200"
           style={{ color: thumbColor }}
         >
-          {formattedValue}
+          {formatElev(value, unit)}
         </span>
       </div>
 
@@ -113,7 +120,7 @@ export function ElevationSlider({ value, onChange, disabled = false }: Elevation
           aria-valuemin={MIN_ELEVATION}
           aria-valuemax={MAX_ELEVATION}
           aria-valuenow={value}
-          aria-valuetext={formattedValue}
+          aria-valuetext={formatElev(value, unit)}
         />
         {/* Thumb glow indicator */}
         <div
@@ -126,25 +133,27 @@ export function ElevationSlider({ value, onChange, disabled = false }: Elevation
         />
       </div>
 
-      {/* Landmark ticks */}
-      <div className="relative h-8">
-        {LANDMARKS.map((lm) => {
+      {/* Landmark ticks — alternating above/below to prevent crowding */}
+      <div className="relative h-10 mt-1">
+        {LANDMARKS.map((lm, i) => {
           const pct = elevationToPercent(lm.elevation);
+          const above = i % 2 === 0;
           return (
             <button
               key={lm.label}
               type="button"
               onClick={() => !disabled && onChange(lm.elevation)}
               disabled={disabled}
-              className="absolute -translate-x-1/2 flex flex-col items-center gap-0.5 group cursor-pointer disabled:cursor-default"
-              style={{ left: `${pct}%` }}
-              title={`${lm.label}: ${lm.elevation}m`}
+              className="absolute -translate-x-1/2 flex flex-col items-center gap-0 group cursor-pointer disabled:cursor-default"
+              style={{ left: `${pct}%`, top: above ? 0 : '50%' }}
+              title={`${lm.label}: ${lm.elevation >= 0 ? '+' : ''}${lm.elevation}m`}
             >
-              <div
-                className="w-px h-2 bg-charcoal-700 group-hover:bg-amber-400 transition-colors"
-              />
-              <span className="text-[9px] font-mono text-gray-500 group-hover:text-amber-400 transition-colors whitespace-nowrap">
-                {lm.icon} {lm.label}
+              <div className="w-px h-2 bg-charcoal-600 group-hover:bg-amber-400 transition-colors" />
+              <span className="text-[10px] font-mono text-gray-500 group-hover:text-amber-400 transition-colors whitespace-nowrap leading-tight">
+                {lm.label}
+              </span>
+              <span className="text-[9px] font-mono text-gray-600 group-hover:text-amber-500 transition-colors whitespace-nowrap leading-tight">
+                {formatElev(lm.elevation, unit)}
               </span>
             </button>
           );

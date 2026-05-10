@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db/client';
-import { leaderboardEntries } from '@/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { leaderboardEntries, sessionRounds, sessions } from '@/db/schema';
+import { desc, eq, and, isNotNull } from 'drizzle-orm';
 import { z } from 'zod';
 
 const SubmitSchema = z.object({
   playerName: z.string().min(1).max(32).trim(),
-  totalScore: z.number().int().min(0).max(5000),
-  roundScores: z.array(z.number().int().min(0).max(1000)).length(5),
   sessionId: z.string().uuid(),
+  // totalScore and roundScores are ignored from client — server recomputes them
 });
 
 export async function GET(): Promise<NextResponse> {
@@ -45,9 +44,27 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { playerName, totalScore, roundScores, sessionId } = parsed.data;
+    const { playerName, sessionId } = parsed.data;
 
-    // Check for duplicate session
+    // Check session exists and is completed
+    const session = await db
+      .select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .get();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    if (!session.completedAt) {
+      return NextResponse.json(
+        { error: 'Game session is not yet complete' },
+        { status: 400 }
+      );
+    }
+
+    // Check for duplicate leaderboard entry
     const existing = await db
       .select()
       .from(leaderboardEntries)
@@ -61,10 +78,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Fetch and verify scores from database — never trust client-submitted scores
+    const dbRounds = await db
+      .select()
+      .from(sessionRounds)
+      .where(
+        and(
+          eq(sessionRounds.sessionId, sessionId),
+          isNotNull(sessionRounds.score)
+        )
+      )
+      .all();
+
+    if (dbRounds.length !== 5) {
+      return NextResponse.json(
+        { error: 'Game session is not complete (missing round scores)' },
+        { status: 400 }
+      );
+    }
+
+    const sortedRounds = [...dbRounds].sort((a, b) => a.roundIndex - b.roundIndex);
+    const verifiedRoundScores = sortedRounds.map((r) => r.score as number);
+    const verifiedTotalScore = verifiedRoundScores.reduce((sum, s) => sum + s, 0);
+
     await db.insert(leaderboardEntries).values({
       playerName,
-      totalScore,
-      roundScores: JSON.stringify(roundScores),
+      totalScore: verifiedTotalScore,
+      roundScores: JSON.stringify(verifiedRoundScores),
       sessionId,
     });
 

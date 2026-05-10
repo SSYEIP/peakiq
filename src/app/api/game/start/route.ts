@@ -7,22 +7,37 @@ import type { Location, RoundClue } from '@/types';
 
 const locations = locationsData as Location[];
 
-function selectRandomLocations(count: number): Location[] {
-  const shuffled = [...locations].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+/** Returns today's date string in local server time: "2026-05-10" */
+function getTodayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Simple LCG seeded shuffle — same seed always produces same order */
+function seededShuffle(arr: Location[], seed: number): Location[] {
+  const shuffled = [...arr];
+  let s = seed >>> 0;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = Math.imul(s, 1664525) + 1013904223 >>> 0;
+    const j = s % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j] as Location, shuffled[i] as Location];
+  }
+  return shuffled;
+}
+
+function getDailyLocations(): { locations: Location[]; date: string } {
+  const date = getTodayString();
+  const seed = parseInt(date.replace(/-/g, ''), 10);
+  return { locations: seededShuffle(locations, seed).slice(0, 5), date };
 }
 
 export async function POST(): Promise<NextResponse> {
   try {
+    const { locations: selectedLocations, date } = getDailyLocations();
     const sessionId = randomUUID();
-    const selectedLocations = selectRandomLocations(5);
 
-    // Create session
-    await db.insert(sessions).values({
-      id: sessionId,
-    });
+    await db.insert(sessions).values({ id: sessionId });
 
-    // Create rounds
     await db.insert(sessionRounds).values(
       selectedLocations.map((loc, index) => ({
         sessionId,
@@ -31,7 +46,6 @@ export async function POST(): Promise<NextResponse> {
       }))
     );
 
-    // Return sanitized clues (NO elevation, NO name)
     const clues: RoundClue[] = selectedLocations.map((loc, index) => ({
       roundIndex: index,
       locationId: loc.id,
@@ -45,7 +59,7 @@ export async function POST(): Promise<NextResponse> {
       mapZoom: loc.mapZoom,
     }));
 
-    return NextResponse.json({ sessionId, clues });
+    return NextResponse.json({ sessionId, clues, date });
   } catch (error) {
     console.error('Error starting game:', error);
     return NextResponse.json(

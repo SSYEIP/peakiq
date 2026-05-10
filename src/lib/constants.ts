@@ -1,0 +1,3 @@
+export const MIN_ELEVATION = -427;
+export const MAX_ELEVATION = 8849;
+export const ELEVATION_RANGE = MAX_ELEVATION - MIN_ELEVATION; // 9276

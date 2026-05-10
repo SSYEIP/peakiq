@@ -4,16 +4,32 @@ import React from 'react';
 import { Button } from '@/components/ui/Button';
 import type { RoundResult } from '@/types';
 import { getScoreColor } from '@/lib/scoring';
+import type { Unit } from './GameOrchestrator';
+
+function formatElev(m: number, unit: Unit): string {
+  if (unit === 'ft') {
+    const ft = Math.round(m * 3.28084);
+    return ft >= 0 ? `+${ft.toLocaleString()} ft` : `${ft.toLocaleString()} ft`;
+  }
+  return m >= 0 ? `+${m.toLocaleString()} m` : `${m.toLocaleString()} m`;
+}
 
 interface ResultRevealProps {
   result: RoundResult;
   onNext: () => void;
   isLastRound: boolean;
+  unit?: Unit;
 }
 
-export function ResultReveal({ result, onNext, isLastRound }: ResultRevealProps) {
+export function ResultReveal({ result, onNext, isLastRound, unit = 'm' }: ResultRevealProps) {
   const delta = result.actualElevation - result.guess;
-  const deltaText = delta > 0 ? `${delta}m too low` : delta < 0 ? `${Math.abs(delta)}m too high` : 'Perfect!';
+  const absDelta = Math.abs(unit === 'ft' ? Math.round(delta * 3.28084) : delta);
+  const unitLabel = unit === 'ft' ? 'ft' : 'm';
+  const deltaText = delta > 0
+    ? `${absDelta.toLocaleString()}${unitLabel} too low`
+    : delta < 0
+    ? `${absDelta.toLocaleString()}${unitLabel} too high`
+    : 'Perfect!';
   const scoreColor = getScoreColor(result.score);
   const scorePercent = (result.score / 1000) * 100;
 
@@ -32,13 +48,13 @@ export function ResultReveal({ result, onNext, isLastRound }: ResultRevealProps)
         <div className="bg-charcoal-900/50 rounded-xl p-4 text-center border border-charcoal-700">
           <p className="text-xs text-gray-500 font-mono uppercase mb-1">Your Guess</p>
           <p className="text-xl font-bold font-mono text-white">
-            {result.guess >= 0 ? '+' : ''}{result.guess.toLocaleString()}m
+            {formatElev(result.guess, unit)}
           </p>
         </div>
         <div className="bg-charcoal-900/50 rounded-xl p-4 text-center border border-amber-400/30">
           <p className="text-xs text-amber-400/70 font-mono uppercase mb-1">Actual</p>
           <p className="text-xl font-bold font-mono text-amber-400">
-            {result.actualElevation >= 0 ? '+' : ''}{result.actualElevation.toLocaleString()}m
+            {formatElev(result.actualElevation, unit)}
           </p>
         </div>
       </div>

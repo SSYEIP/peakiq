@@ -43,9 +43,8 @@ export function GameOver({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           playerName: playerName.trim(),
-          totalScore,
-          roundScores: results.map((r) => r.score),
           sessionId,
+          // totalScore and roundScores are now computed server-side
         }),
       });
 

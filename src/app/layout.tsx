@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Space_Grotesk, Space_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -15,9 +15,19 @@ const spaceMono = Space_Mono({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  themeColor: '#1c1c24',
+};
+
 export const metadata: Metadata = {
-  title: 'Elevation Guesser — How high is it?',
-  description: 'A geography game where you guess the elevation of world-famous locations. Five rounds, one slider.',
+  title: 'PeakIQ — Can you guess the elevation?',
+  description: 'A daily geography game where you guess the elevation of world-famous locations. Five rounds, one slider. A new challenge every day.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'PeakIQ',
+  },
 };
 
 export default function RootLayout({
