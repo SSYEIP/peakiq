@@ -192,6 +192,15 @@ export function GameOrchestrator() {
           />
         </header>
 
+        {/* Accessible live region for screen readers */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {state.phase === 'round_submitted' && currentResult
+            ? `Score: ${currentResult.score} out of 1000. Actual elevation: ${currentResult.actualElevation} metres.`
+            : state.phase === 'round_active'
+            ? `Round ${state.currentRound + 1}. Guess the elevation.`
+            : ''}
+        </div>
+
         {/* Main content */}
         <div className="flex-1 grid md:grid-cols-2 gap-0 overflow-hidden min-h-0">
           {/* Map pane */}

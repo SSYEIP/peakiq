@@ -1,23 +1,13 @@
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
+import path from 'path';
 
-function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    throw new Error('DATABASE_URL environment variable is not set');
-  }
-  return url;
-}
+const dbUrl = process.env.DATABASE_URL ?? 'file:./dev.db';
+const dbPath = dbUrl.replace(/^file:/, '');
+const absolutePath = path.isAbsolute(dbPath)
+  ? dbPath
+  : path.join(process.cwd(), dbPath);
 
-function getAuthToken(): string | undefined {
-  return process.env.DATABASE_AUTH_TOKEN;
-}
-
-const client = createClient({
-  url: getDatabaseUrl(),
-  authToken: getAuthToken(),
-});
-
-export const db = drizzle(client, { schema });
-export { client };
+const sqlite = new Database(absolutePath);
+export const db = drizzle(sqlite, { schema });

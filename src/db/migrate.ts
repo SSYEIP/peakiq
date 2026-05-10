@@ -1,10 +1,10 @@
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db } from './client';
 import path from 'path';
 
 async function runMigrations() {
   console.log('Running migrations...');
-  await migrate(db, { migrationsFolder: path.join(process.cwd(), 'src/db/migrations') });
+  migrate(db, { migrationsFolder: path.join(process.cwd(), 'src/db/migrations') });
   console.log('Migrations complete!');
   process.exit(0);
 }
