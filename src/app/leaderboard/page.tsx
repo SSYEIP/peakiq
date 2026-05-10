@@ -144,7 +144,7 @@ export default async function LeaderboardPage() {
                       <p className={`text-xl font-bold font-mono ${isTop3 ? 'text-amber-400' : 'text-white'}`}>
                         {entry.totalScore.toLocaleString()}
                       </p>
-                      <p className="text-xs text-gray-500 font-mono">/ 5,000</p>
+                      <p className="text-xs text-gray-500 font-mono">daily total</p>
                     </div>
 
                     {/* Date */}

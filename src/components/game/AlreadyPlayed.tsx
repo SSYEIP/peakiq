@@ -52,7 +52,8 @@ export function AlreadyPlayed({ daily, unit }: Props) {
   }, []);
 
   const label = getPerformanceLabel(daily.totalScore);
-  const pct = (daily.totalScore / 5000) * 100;
+  const maxScore = daily.results.reduce((sum, r) => sum + (r.maxScore ?? 1000), 0);
+  const pct = (daily.totalScore / maxScore) * 100;
 
   return (
     <div className="space-y-6 max-w-lg mx-auto w-full px-4">
@@ -71,7 +72,7 @@ export function AlreadyPlayed({ daily, unit }: Props) {
           <span className="text-4xl font-bold font-mono text-amber-400">
             {daily.totalScore.toLocaleString()}
           </span>
-          <span className="text-gray-500 font-mono text-sm">/ 5,000</span>
+          <span className="text-gray-500 font-mono text-sm">/ {maxScore.toLocaleString()}</span>
         </div>
         <div className="h-2 bg-charcoal-700 rounded-full overflow-hidden">
           <div
@@ -84,7 +85,7 @@ export function AlreadyPlayed({ daily, unit }: Props) {
       {/* Round breakdown */}
       <div className="space-y-2">
         {daily.results.map((r, i) => {
-          const color = getScoreColor(r.score);
+          const color = getScoreColor(r.score, r.maxScore ?? 1000);
           return (
             <div
               key={r.roundIndex}

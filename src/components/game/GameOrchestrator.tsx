@@ -12,7 +12,7 @@ import { AlreadyPlayed } from './AlreadyPlayed';
 import type { DailyResult } from './AlreadyPlayed';
 import { Button } from '@/components/ui/Button';
 import { TopoBackground } from '@/components/ui/TopoBackground';
-import type { RoundClue, RoundResult } from '@/types';
+import type { GameMode, RoundClue, RoundResult } from '@/types';
 
 export type Unit = 'm' | 'ft';
 
@@ -48,11 +48,13 @@ interface StartResponse {
   sessionId: string;
   clues: RoundClue[];
   date: string;
+  mode: GameMode;
 }
 
 export function GameOrchestrator() {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [unit, setUnit] = useState<Unit>('m');
+  const [mode, setMode] = useState<GameMode>('normal');
 
   // Load today's result from localStorage once on mount (lazy initializer)
   const [daily, setDaily] = useState<DailyResult | null>(() => {
@@ -70,7 +72,11 @@ export function GameOrchestrator() {
   const startGame = useCallback(async () => {
     dispatch({ type: 'START_LOADING' });
     try {
-      const res = await fetch('/api/game/start', { method: 'POST' });
+      const res = await fetch('/api/game/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode }),
+      });
       if (!res.ok) throw new Error('Failed to start game');
       const data = await res.json() as StartResponse;
       dispatch({
@@ -83,7 +89,7 @@ export function GameOrchestrator() {
         payload: err instanceof Error ? err.message : 'Failed to start game',
       });
     }
-  }, []);
+  }, [mode]);
 
   const submitGuess = useCallback(async () => {
     if (!state.sessionId) return;
@@ -162,6 +168,32 @@ export function GameOrchestrator() {
                 Five locations. One slider. Can you guess the elevation of each spot on Earth?
               </p>
               <div className="space-y-4">
+                <div className="mx-auto w-full max-w-md rounded-xl border border-charcoal-700 bg-charcoal-800/80 p-2">
+                  <p className="text-[11px] text-gray-500 font-mono uppercase tracking-wider mb-2 text-left px-2">
+                    Challenge Mode
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMode('normal')}
+                      className={`rounded-lg px-3 py-2 text-sm font-mono border transition-colors ${mode === 'normal' ? 'bg-amber-400 text-charcoal-900 border-amber-300 font-bold' : 'bg-charcoal-900 text-gray-300 border-charcoal-600 hover:border-charcoal-500'}`}
+                    >
+                      Normal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('hard')}
+                      className={`rounded-lg px-3 py-2 text-sm font-mono border transition-colors ${mode === 'hard' ? 'bg-amber-400 text-charcoal-900 border-amber-300 font-bold' : 'bg-charcoal-900 text-gray-300 border-charcoal-600 hover:border-charcoal-500'}`}
+                    >
+                      Hard
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-500 font-mono mt-2 px-2 text-left">
+                    {mode === 'normal'
+                      ? 'Map visible · Region clue hidden'
+                      : 'Map hidden · Region clue shown'}
+                  </p>
+                </div>
                 <Button
                   variant="primary"
                   size="lg"
@@ -225,6 +257,8 @@ export function GameOrchestrator() {
     const isLoading = state.phase === 'loading';
 
     if (!currentClue) return null;
+    const showMap = mode === 'normal';
+    const showRegionClue = mode === 'hard';
 
     // Accuracy radius based on error in metres
     const accuracyRadius = currentResult
@@ -234,9 +268,14 @@ export function GameOrchestrator() {
     return (
       <div className="h-screen flex flex-col bg-charcoal-900 overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 md:px-6 py-3 bg-charcoal-800 border-b border-charcoal-700 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="text-amber-400 font-bold text-lg font-sans">⛰ PeakIQ</span>
+        <header className="px-4 md:px-6 py-3 bg-charcoal-800 border-b border-charcoal-700 shrink-0">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-amber-400 font-bold text-lg font-sans">⛰ PeakIQ</span>
+              <span className="text-[10px] uppercase tracking-wider border border-charcoal-600 text-gray-400 px-1.5 py-0.5 rounded font-mono">
+                {mode}
+              </span>
+            </div>
             {/* Unit toggle */}
             <button
               onClick={() => setUnit(u => u === 'm' ? 'ft' : 'm')}
@@ -246,45 +285,57 @@ export function GameOrchestrator() {
               <span className={`px-2 py-1 transition-colors ${unit === 'm' ? 'bg-amber-400 text-charcoal-900 font-bold' : 'text-gray-400 hover:text-gray-200'}`}>m</span>
               <span className={`px-2 py-1 transition-colors ${unit === 'ft' ? 'bg-amber-400 text-charcoal-900 font-bold' : 'text-gray-400 hover:text-gray-200'}`}>ft</span>
             </button>
+            <div className="hidden sm:block">
+              <RoundProgress
+                currentRound={state.currentRound}
+                totalRounds={state.rounds.length}
+                results={state.results}
+              />
+            </div>
           </div>
-          <RoundProgress
-            currentRound={state.currentRound}
-            totalRounds={state.rounds.length}
-            results={state.results}
-          />
+          <div className="sm:hidden mt-3 pt-3 border-t border-charcoal-700/70">
+            <RoundProgress
+              currentRound={state.currentRound}
+              totalRounds={state.rounds.length}
+              results={state.results}
+            />
+          </div>
         </header>
 
         {/* Accessible live region for screen readers */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {state.phase === 'round_submitted' && currentResult
-            ? `Score: ${currentResult.score} out of 1000. Actual elevation: ${currentResult.actualElevation} metres.`
+            ? `Score: ${currentResult.score} out of ${currentResult.maxScore ?? 1000}. Actual elevation: ${currentResult.actualElevation} metres.`
             : state.phase === 'round_active'
             ? `Round ${state.currentRound + 1}. Guess the elevation.`
             : ''}
         </div>
 
         {/* Main content */}
-        <div className="flex-1 grid md:grid-cols-2 gap-0 overflow-hidden min-h-0">
+        <div className={`flex-1 ${showMap ? 'grid md:grid-cols-2' : 'flex'} gap-0 overflow-hidden min-h-0`}>
           {/* Map pane */}
-          <div className="relative h-[40vh] md:h-full bg-charcoal-900 p-2">
-            <GameMap
-              lat={currentClue.lat}
-              lng={currentClue.lng}
-              zoom={currentClue.mapZoom}
-              showResult={isSubmitted}
-              accuracyRadius={accuracyRadius}
-              score={currentResult?.score}
-            />
-          </div>
+          {showMap && (
+            <div className="relative h-[40vh] md:h-full bg-charcoal-900 p-2">
+              <GameMap
+                lat={currentClue.lat}
+                lng={currentClue.lng}
+                zoom={currentClue.mapZoom}
+                showResult={isSubmitted}
+                accuracyRadius={accuracyRadius}
+                score={currentResult?.score}
+              />
+            </div>
+          )}
 
           {/* Controls pane */}
-          <div className="flex flex-col bg-charcoal-800 border-l border-charcoal-700 overflow-y-auto">
+          <div className={`flex flex-col bg-charcoal-800 overflow-y-auto ${showMap ? 'border-l border-charcoal-700' : 'w-full max-w-3xl mx-auto border-l-0'}`}>
             <div className="flex-1 p-4 md:p-6 space-y-6">
               {/* Location clue */}
               <LocationClue
                 clue={currentClue}
                 roundNumber={state.currentRound + 1}
                 totalRounds={state.rounds.length}
+                showRegionClue={showRegionClue}
               />
 
               {/* Error banner */}

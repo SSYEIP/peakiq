@@ -1,16 +1,11 @@
 import React from 'react';
 import type { RoundResult } from '@/types';
+import { getScoreColor } from '@/lib/scoring';
 
 interface RoundProgressProps {
   currentRound: number;
   totalRounds: number;
   results: RoundResult[];
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 800) return '#4ade80';
-  if (score >= 500) return '#fbbf24';
-  return '#f87171';
 }
 
 export function RoundProgress({ currentRound, totalRounds, results }: RoundProgressProps) {
@@ -34,14 +29,14 @@ export function RoundProgress({ currentRound, totalRounds, results }: RoundProgr
                     : 'bg-charcoal-700 text-gray-500 border-2 border-charcoal-700'
                 }
               `}
-              style={
-                isComplete && result
-                  ? {
-                      borderColor: getScoreColor(result.score),
-                      color: getScoreColor(result.score),
-                      background: `${getScoreColor(result.score)}20`,
-                    }
-                  : {}
+                style={
+                  isComplete && result
+                    ? {
+                        borderColor: getScoreColor(result.score, result.maxScore ?? 1000),
+                        color: getScoreColor(result.score, result.maxScore ?? 1000),
+                        background: `${getScoreColor(result.score, result.maxScore ?? 1000)}20`,
+                      }
+                    : {}
               }
             >
               {isComplete && result ? (

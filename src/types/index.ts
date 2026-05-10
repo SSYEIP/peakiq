@@ -1,4 +1,5 @@
 export type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme';
+export type GameMode = 'normal' | 'hard';
 
 export interface Location {
   id: string;
@@ -38,6 +39,8 @@ export interface RoundResult {
   guess: number;
   delta: number;
   score: number;
+  multiplier?: number;
+  maxScore?: number;
 }
 
 export interface GameState {

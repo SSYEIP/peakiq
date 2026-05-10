@@ -25,13 +25,15 @@ export function ResultReveal({ result, onNext, isLastRound, unit = 'm' }: Result
   const delta = result.actualElevation - result.guess;
   const absDelta = Math.abs(unit === 'ft' ? Math.round(delta * 3.28084) : delta);
   const unitLabel = unit === 'ft' ? 'ft' : 'm';
+  const maxScore = result.maxScore ?? 1000;
+  const multiplier = result.multiplier ?? 1;
   const deltaText = delta > 0
     ? `${absDelta.toLocaleString()}${unitLabel} too low`
     : delta < 0
     ? `${absDelta.toLocaleString()}${unitLabel} too high`
     : 'Perfect!';
-  const scoreColor = getScoreColor(result.score);
-  const scorePercent = (result.score / 1000) * 100;
+  const scoreColor = getScoreColor(result.score, maxScore);
+  const scorePercent = (result.score / maxScore) * 100;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -69,9 +71,14 @@ export function ResultReveal({ result, onNext, isLastRound, unit = 'm' }: Result
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-400 font-mono">Score</span>
-          <span className="font-bold font-mono" style={{ color: scoreColor }}>
-            {result.score} / 1000
-          </span>
+          <div className="text-right">
+            <span className="font-bold font-mono" style={{ color: scoreColor }}>
+              {result.score} / {maxScore}
+            </span>
+            <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+              ×{multiplier.toFixed(2)} difficulty multiplier
+            </p>
+          </div>
         </div>
         <div className="h-3 bg-charcoal-900 rounded-full overflow-hidden">
           <div

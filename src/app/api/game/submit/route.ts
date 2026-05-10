@@ -4,7 +4,7 @@ import { db } from '@/db/client';
 export const dynamic = 'force-dynamic';
 import { sessions, sessionRounds } from '@/db/schema';
 import { eq, and, isNull, isNotNull, sql } from 'drizzle-orm';
-import { calculateScore } from '@/lib/scoring';
+import { calculateScore, getDifficultyMultiplier, getMaxRoundScore } from '@/lib/scoring';
 import locationsData from '@/data/locations.json';
 import type { Location, RoundResult } from '@/types';
 import { z } from 'zod';
@@ -63,7 +63,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Location not found' }, { status: 500 });
     }
 
-    const score = calculateScore(location.elevation, guess);
+    const baseScore = calculateScore(location.elevation, guess);
+    const multiplier = getDifficultyMultiplier(location.difficulty);
+    const score = Math.round(baseScore * multiplier);
+    const maxScore = getMaxRoundScore(location.difficulty);
     const now = Date.now();
 
     // Atomic conditional UPDATE — only updates if guess IS NULL (prevents double-submission)
@@ -113,6 +116,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       guess,
       delta: location.elevation - guess,
       score,
+      multiplier,
+      maxScore,
     };
 
     return NextResponse.json(result);

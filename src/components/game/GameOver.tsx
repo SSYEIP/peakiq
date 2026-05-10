@@ -27,7 +27,7 @@ export function GameOver({
   const [submitted, setSubmitted] = useState(false);
 
   const performanceLabel = getPerformanceLabel(totalScore);
-  const maxScore = results.length * 1000;
+  const maxScore = results.reduce((sum, r) => sum + (r.maxScore ?? 1000), 0);
   const percentage = Math.round((totalScore / maxScore) * 100);
 
   async function handleSubmitScore(e: React.FormEvent) {
@@ -91,7 +91,7 @@ export function GameOver({
             Round Breakdown
           </h3>
           {results.map((result, i) => {
-            const color = getScoreColor(result.score);
+            const color = getScoreColor(result.score, result.maxScore ?? 1000);
             return (
               <div
                 key={i}

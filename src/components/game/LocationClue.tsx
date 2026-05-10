@@ -6,9 +6,10 @@ interface LocationClueProps {
   clue: RoundClue;
   roundNumber: number;
   totalRounds: number;
+  showRegionClue?: boolean;
 }
 
-export function LocationClue({ clue, roundNumber, totalRounds }: LocationClueProps) {
+export function LocationClue({ clue, roundNumber, totalRounds, showRegionClue = true }: LocationClueProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 flex-wrap">
@@ -32,14 +33,16 @@ export function LocationClue({ clue, roundNumber, totalRounds }: LocationCluePro
         </p>
       </div>
 
-      <div className="bg-charcoal-900/50 rounded-xl p-3 border border-amber-400/20">
-        <p className="text-xs text-amber-400/70 font-mono uppercase tracking-wider mb-1">
-          Region Clue
-        </p>
-        <p className="text-amber-400 font-semibold">
-          {clue.clueRegion}
-        </p>
-      </div>
+      {showRegionClue && (
+        <div className="bg-charcoal-900/50 rounded-xl p-3 border border-amber-400/20">
+          <p className="text-xs text-amber-400/70 font-mono uppercase tracking-wider mb-1">
+            Region Clue
+          </p>
+          <p className="text-amber-400 font-semibold">
+            {clue.clueRegion}
+          </p>
+        </div>
+      )}
 
       <p className="text-gray-500 text-xs font-mono text-right">
         Round {roundNumber} / {totalRounds}
