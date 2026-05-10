@@ -81,7 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         )
       );
 
-    if ((updateResult.rowCount ?? 0) === 0) {
+    if ((updateResult.rowsAffected ?? 0) === 0) {
       return NextResponse.json(
         { error: 'Round already submitted' },
         { status: 409 }

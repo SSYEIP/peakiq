@@ -1,27 +1,27 @@
-import { bigint, integer, pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
-export const sessions = pgTable('sessions', {
+export const sessions = sqliteTable('sessions', {
   id: text('id').primaryKey(),
-  createdAt: bigint('created_at', { mode: 'number' }).notNull().default(sql`(extract(epoch from now()) * 1000)::bigint`),
-  completedAt: bigint('completed_at', { mode: 'number' }),
+  createdAt: integer('created_at').notNull().default(sql`(unixepoch() * 1000)`),
+  completedAt: integer('completed_at'),
 });
 
-export const sessionRounds = pgTable('session_rounds', {
-  id: serial('id').primaryKey(),
+export const sessionRounds = sqliteTable('session_rounds', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
   sessionId: text('session_id').notNull().references(() => sessions.id),
   roundIndex: integer('round_index').notNull(),
   locationId: text('location_id').notNull(),
   guess: integer('guess'),
   score: integer('score'),
-  submittedAt: bigint('submitted_at', { mode: 'number' }),
+  submittedAt: integer('submitted_at'),
 });
 
-export const leaderboardEntries = pgTable('leaderboard_entries', {
-  id: serial('id').primaryKey(),
+export const leaderboardEntries = sqliteTable('leaderboard_entries', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
   playerName: text('player_name').notNull(),
   totalScore: integer('total_score').notNull(),
   roundScores: text('round_scores').notNull(),
   sessionId: text('session_id').notNull().unique(),
-  createdAt: bigint('created_at', { mode: 'number' }).notNull().default(sql`(extract(epoch from now()) * 1000)::bigint`),
+  createdAt: integer('created_at').notNull().default(sql`(unixepoch() * 1000)`),
 });
