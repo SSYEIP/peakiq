@@ -33,8 +33,7 @@ function elevationToPercent(elevation: number): number {
 }
 
 function getGradientForPercent(pct: number): string {
-  // Blue (sea/below) -> Green (mid altitude) -> Red (high altitude)
-  if (pct < 5) return '#38bdf8'; // topo-blue
+  if (pct < 5) return '#38bdf8';
   if (pct < 30) {
     const t = (pct - 5) / 25;
     const r = Math.round(56 + (74 - 56) * t);
@@ -49,7 +48,7 @@ function getGradientForPercent(pct: number): string {
     const b = Math.round(128 + (113 - 128) * t);
     return `rgb(${r},${g},${b})`;
   }
-  return '#f87171'; // topo-red
+  return '#f87171';
 }
 
 function clampElevation(elevation: number): number {
@@ -85,14 +84,6 @@ export function ElevationSlider({ value, onChange, disabled = false, unit = 'm' 
     [onChange]
   );
 
-  const nudge = useCallback(
-    (delta: number) => {
-      if (disabled) return;
-      onChange(clampElevation(value + delta));
-    },
-    [disabled, onChange, value]
-  );
-
   return (
     <div className="space-y-5 select-none">
       {/* Current value display */}
@@ -106,41 +97,6 @@ export function ElevationSlider({ value, onChange, disabled = false, unit = 'm' 
         >
           {formatElev(value, unit)}
         </span>
-      </div>
-
-      <div className="flex justify-end gap-1.5">
-        <button
-          type="button"
-          onClick={() => nudge(-100)}
-          disabled={disabled}
-          className="px-2.5 py-1 text-[11px] font-mono rounded-md border border-charcoal-600 bg-charcoal-900 text-gray-300 hover:border-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
-        >
-          -100
-        </button>
-        <button
-          type="button"
-          onClick={() => nudge(-10)}
-          disabled={disabled}
-          className="px-2.5 py-1 text-[11px] font-mono rounded-md border border-charcoal-600 bg-charcoal-900 text-gray-300 hover:border-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
-        >
-          -10
-        </button>
-        <button
-          type="button"
-          onClick={() => nudge(10)}
-          disabled={disabled}
-          className="px-2.5 py-1 text-[11px] font-mono rounded-md border border-charcoal-600 bg-charcoal-900 text-gray-300 hover:border-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
-        >
-          +10
-        </button>
-        <button
-          type="button"
-          onClick={() => nudge(100)}
-          disabled={disabled}
-          className="px-2.5 py-1 text-[11px] font-mono rounded-md border border-charcoal-600 bg-charcoal-900 text-gray-300 hover:border-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
-        >
-          +100
-        </button>
       </div>
 
       {/* Slider track */}
@@ -193,7 +149,7 @@ export function ElevationSlider({ value, onChange, disabled = false, unit = 'm' 
         />
       </div>
 
-      {/* Landmark ticks — alternating above/below to prevent crowding */}
+      {/* Landmark ticks */}
       <div className="relative h-12 mt-1">
         {LANDMARKS.map((lm, i) => {
           const pct = elevationToPercent(lm.elevation);
