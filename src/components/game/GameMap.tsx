@@ -57,7 +57,7 @@ export function GameMap({ lat, lng, zoom, showResult = false, accuracyRadius, sc
 
     const map = L.map(containerRef.current, {
       center: [lat, lng],
-      zoom: 4,
+      zoom: Math.max(zoom, 12),
       zoomControl: true,
       scrollWheelZoom: false,
     });
@@ -84,7 +84,7 @@ export function GameMap({ lat, lng, zoom, showResult = false, accuracyRadius, sc
   // Fly to new location when lat/lng/zoom change
   useEffect(() => {
     if (!mapRef.current || !markerRef.current) return;
-    mapRef.current.flyTo([lat, lng], 4, { duration: 1.2 });
+    mapRef.current.flyTo([lat, lng], Math.max(zoom, 12), { duration: 1.2 });
     markerRef.current.setLatLng([lat, lng]);
   }, [lat, lng, zoom]);
 
