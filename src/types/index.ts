@@ -21,6 +21,7 @@ export type GamePhase = 'idle' | 'loading' | 'round_active' | 'round_submitted' 
 export interface RoundClue {
   roundIndex: number;
   locationId: string;
+  name: string;
   clueRegion: string;
   country: string;
   continent: string;

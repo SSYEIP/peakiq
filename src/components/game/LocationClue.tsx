@@ -4,35 +4,28 @@ import type { RoundClue } from '@/types';
 
 interface LocationClueProps {
   clue: RoundClue;
-  roundNumber: number;
-  totalRounds: number;
   showRegionClue?: boolean;
 }
 
-export function LocationClue({ clue, roundNumber, totalRounds, showRegionClue = true }: LocationClueProps) {
+export function LocationClue({ clue, showRegionClue = true }: LocationClueProps) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 flex-wrap">
+    <div className="space-y-3">
+      {/* City name + difficulty */}
+      <div className="space-y-1">
+        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
+          {clue.name}
+        </h2>
         <Badge variant="difficulty" difficulty={clue.difficulty}>
           {clue.difficulty}
         </Badge>
-        <Badge variant="continent">
-          {clue.continent}
-        </Badge>
-        <span className="text-gray-500 text-xs font-mono">
-          {clue.country}
-        </span>
       </div>
 
-      <div className="bg-charcoal-900/50 rounded-xl p-4 border border-charcoal-700">
-        <p className="text-sm text-gray-400 font-mono uppercase tracking-wider mb-2">
-          Location Description
-        </p>
-        <p className="text-white leading-relaxed text-sm">
-          {clue.description}
-        </p>
-      </div>
+      {/* Description */}
+      <p className="text-gray-300 leading-relaxed text-sm md:text-base">
+        {clue.description}
+      </p>
 
+      {/* Region clue (hard mode only) */}
       {showRegionClue && (
         <div className="bg-charcoal-900/50 rounded-xl p-3 border border-amber-400/20">
           <p className="text-xs text-amber-400/70 font-mono uppercase tracking-wider mb-1">
@@ -43,10 +36,6 @@ export function LocationClue({ clue, roundNumber, totalRounds, showRegionClue = 
           </p>
         </div>
       )}
-
-      <p className="text-gray-500 text-xs font-mono text-right">
-        Round {roundNumber} / {totalRounds}
-      </p>
     </div>
   );
 }

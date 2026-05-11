@@ -311,73 +311,68 @@ export function GameOrchestrator() {
             : ''}
         </div>
 
-        {/* Main content */}
-        <div className={`flex-1 ${showMap ? 'grid md:grid-cols-2' : 'flex'} gap-0 overflow-hidden min-h-0`}>
-          {/* Map pane */}
-          {showMap && (
-            <div className="relative h-[40vh] md:h-full bg-charcoal-900 p-2">
-              <GameMap
-                lat={currentClue.lat}
-                lng={currentClue.lng}
-                zoom={currentClue.mapZoom}
-                showResult={isSubmitted}
-                accuracyRadius={accuracyRadius}
-                score={currentResult?.score}
-              />
-            </div>
-          )}
+        {/* Main content - single scrollable column */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-2xl mx-auto px-4 md:px-6 py-5 space-y-5">
+            {/* Location name + description */}
+            <LocationClue
+              clue={currentClue}
+              showRegionClue={showRegionClue}
+            />
 
-          {/* Controls pane */}
-          <div className={`flex flex-col bg-charcoal-800 overflow-y-auto ${showMap ? 'border-l border-charcoal-700' : 'w-full max-w-3xl mx-auto border-l-0'}`}>
-            <div className="flex-1 p-4 md:p-6 space-y-6">
-              {/* Location clue */}
-              <LocationClue
-                clue={currentClue}
-                roundNumber={state.currentRound + 1}
-                totalRounds={state.rounds.length}
-                showRegionClue={showRegionClue}
-              />
+            {/* Error banner */}
+            {state.error && (
+              <div
+                role="alert"
+                className="bg-topo-red/10 border border-topo-red/30 rounded-xl p-3"
+              >
+                <p className="text-topo-red font-mono text-sm">
+                  ⚠ {state.error} — please try again.
+                </p>
+              </div>
+            )}
 
-              {/* Error banner */}
-              {state.error && (
-                <div
-                  role="alert"
-                  className="bg-topo-red/10 border border-topo-red/30 rounded-xl p-3"
-                >
-                  <p className="text-topo-red font-mono text-sm">
-                    ⚠ {state.error} — please try again.
-                  </p>
-                </div>
-              )}
-
-              {/* Slider or Result */}
-              {!isSubmitted ? (
-                <div className="space-y-4">
-                  <ElevationSlider
-                    value={state.currentGuess}
-                    onChange={(v) => dispatch({ type: 'SET_GUESS', payload: v })}
-                    disabled={isLoading}
-                    unit={unit}
-                  />
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onClick={submitGuess}
-                    isLoading={isLoading}
-                    className="w-full"
-                  >
-                    Submit Guess
-                  </Button>
-                </div>
-              ) : currentResult ? (
-                <ResultReveal
-                  result={currentResult}
-                  onNext={handleNext}
-                  isLastRound={state.currentRound >= state.rounds.length - 1}
+            {/* Slider or Result */}
+            {!isSubmitted ? (
+              <div className="space-y-4">
+                <ElevationSlider
+                  value={state.currentGuess}
+                  onChange={(v) => dispatch({ type: 'SET_GUESS', payload: v })}
+                  disabled={isLoading}
                   unit={unit}
                 />
-              ) : null}
-            </div>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={submitGuess}
+                  isLoading={isLoading}
+                  className="w-full"
+                >
+                  Submit Guess
+                </Button>
+              </div>
+            ) : currentResult ? (
+              <ResultReveal
+                result={currentResult}
+                onNext={handleNext}
+                isLastRound={state.currentRound >= state.rounds.length - 1}
+                unit={unit}
+              />
+            ) : null}
+
+            {/* Map below controls (normal mode only) */}
+            {showMap && (
+              <div className="rounded-xl overflow-hidden" style={{ height: '320px' }}>
+                <GameMap
+                  lat={currentClue.lat}
+                  lng={currentClue.lng}
+                  zoom={currentClue.mapZoom}
+                  showResult={isSubmitted}
+                  accuracyRadius={accuracyRadius}
+                  score={currentResult?.score}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

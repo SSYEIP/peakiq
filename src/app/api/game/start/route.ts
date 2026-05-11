@@ -136,6 +136,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const clues: RoundClue[] = selectedLocations.map((loc, index) => ({
       roundIndex: index,
       locationId: loc.id,
+      name: loc.name,
       clueRegion: loc.clueRegion,
       country: loc.country,
       continent: loc.continent,
