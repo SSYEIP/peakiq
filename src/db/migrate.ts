@@ -1,9 +1,10 @@
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { db } from './client';
+import { getDb } from './client';
 import path from 'path';
 
 async function runMigrations() {
   console.log('Running migrations...');
+  const db = getDb();
   await migrate(db, { migrationsFolder: path.join(process.cwd(), 'src/db/migrations') });
   console.log('Migrations complete!');
   process.exit(0);

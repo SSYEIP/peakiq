@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db/client';
+import { getDb } from '@/db/client';
 
 export const dynamic = 'force-dynamic';
 import { sessions, sessionRounds } from '@/db/schema';
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { sessionId, roundIndex, guess } = parsed.data;
+    const db = getDb();
 
     // Verify session exists
     const [session] = await db
@@ -63,10 +64,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Location not found' }, { status: 500 });
     }
 
-    const baseScore = calculateScore(location.elevation, guess);
-    const multiplier = getDifficultyMultiplier(location.difficulty);
-    const score = Math.round(baseScore * multiplier);
     const maxScore = getMaxRoundScore(location.difficulty);
+    const multiplier = getDifficultyMultiplier(location.difficulty);
+    const score = calculateScore(location.elevation, guess, maxScore);
     const now = Date.now();
 
     // Atomic conditional UPDATE — only updates if guess IS NULL (prevents double-submission)

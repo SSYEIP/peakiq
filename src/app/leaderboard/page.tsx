@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { db } from '@/db/client';
+import { getDb } from '@/db/client';
 import { leaderboardEntries } from '@/db/schema';
 import { desc } from 'drizzle-orm';
 import { getPerformanceLabel } from '@/lib/scoring';
@@ -32,7 +32,12 @@ function formatDate(timestamp: number): string {
 }
 
 async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  if (!process.env.TURSO_DATABASE_URL?.trim()) {
+    return [];
+  }
+
   try {
+    const db = getDb();
     const entries = await db
       .select()
       .from(leaderboardEntries)

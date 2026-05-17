@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db/client';
+import { getDb } from '@/db/client';
 
 export const dynamic = 'force-dynamic';
 import { sessions, sessionRounds } from '@/db/schema';
@@ -9,95 +9,92 @@ import type { GameMode, Location, RoundClue } from '@/types';
 import { z } from 'zod';
 
 const locations = locationsData as Location[];
-const DIFFICULTY_SEQUENCE: Location['difficulty'][] = ['easy', 'medium', 'medium', 'hard', 'extreme'];
+
 const COASTAL_CITY_IDS = new Set([
-  'new-york',
-  'tokyo',
-  'sydney',
-  'miami',
-  'lagos',
-  'vancouver',
-  'mumbai',
-  'cape-town',
-  'auckland',
-  'havana',
-  'oslo',
-  'helsinki',
-  'buenos-aires',
+  'new-york', 'tokyo', 'sydney', 'miami', 'lagos', 'vancouver', 'mumbai',
+  'cape-town', 'auckland', 'havana', 'oslo', 'helsinki', 'buenos-aires',
+  'los-angeles', 'houston', 'new-orleans', 'boston', 'chicago', 'toronto',
+  'lima', 'santiago-chile', 'rio-de-janeiro', 'caracas', 'bangkok', 'taipei',
+  'manila', 'dhaka', 'colombo', 'karachi', 'jakarta', 'ho-chi-minh-city',
+  'casablanca', 'tunis', 'accra', 'dar-es-salaam', 'mombasa', 'alexandria',
+  'melbourne', 'brisbane', 'perth', 'adelaide', 'barcelona', 'lisbon',
+  'dublin', 'hamburg', 'rotterdam', 'marseille', 'amsterdam',
 ]);
+
+const LAUNCH_DATE = new Date('2025-01-01T00:00:00Z');
 
 const StartSchema = z.object({
   mode: z.enum(['normal', 'hard']).optional(),
 });
 
-/** Returns today's date string in local server time: "2026-05-10" */
 function getTodayString(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** Simple LCG seeded shuffle — same seed always produces same order */
-function seededShuffle(arr: Location[], seed: number): Location[] {
-  const shuffled = [...arr];
-  let s = seed >>> 0;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    s = Math.imul(s, 1664525) + 1013904223 >>> 0;
-    const j = s % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j] as Location, shuffled[i] as Location];
-  }
-  return shuffled;
+function getDayIndex(): number {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const msPerDay = 1000 * 60 * 60 * 24;
+  return Math.floor((today.getTime() - LAUNCH_DATE.getTime()) / msPerDay);
 }
 
 function isCoastalCity(loc: Location): boolean {
   return COASTAL_CITY_IDS.has(loc.id);
 }
 
-function pickLocation(
-  pool: Location[],
-  used: Set<string>,
-  predicate: (loc: Location) => boolean
-): Location | undefined {
-  const picked = pool.find((loc) => !used.has(loc.id) && predicate(loc));
-  if (!picked) return undefined;
-  used.add(picked.id);
-  return picked;
-}
-
+/**
+ * Index-based pool cycling — guarantees no repeats within each difficulty pool.
+ * Sorts each pool alphabetically by id (consistent across deploys).
+ * Uses dayIndex to pick deterministically.
+ */
 function getDailyLocations(): { locations: Location[]; date: string } {
   const date = getTodayString();
-  const seed = parseInt(date.replace(/-/g, ''), 10);
-  const shuffled = seededShuffle(locations, seed);
-  const used = new Set<string>();
-  const selected: Location[] = [];
+  const dayIndex = getDayIndex();
 
-  for (let i = 0; i < DIFFICULTY_SEQUENCE.length; i++) {
-    const targetDifficulty = DIFFICULTY_SEQUENCE[i];
-    const isCoastalSlot = i < 2;
-
-    const exactTarget = pickLocation(
-      shuffled,
-      used,
-      (loc) => loc.difficulty === targetDifficulty && (isCoastalSlot ? isCoastalCity(loc) : !isCoastalCity(loc))
-    );
-
-    const fallbackTarget = exactTarget ?? pickLocation(
-      shuffled,
-      used,
-      (loc) => loc.difficulty === targetDifficulty
-    );
-
-    if (fallbackTarget) {
-      selected.push(fallbackTarget);
-      continue;
-    }
-
-    const anyBySlot = pickLocation(shuffled, used, (loc) => (isCoastalSlot ? isCoastalCity(loc) : !isCoastalCity(loc)))
-      ?? pickLocation(shuffled, used, () => true);
-
-    if (anyBySlot) selected.push(anyBySlot);
+  const pools: Record<string, Location[]> = { easy: [], medium: [], hard: [], extreme: [] };
+  for (const loc of locations) {
+    pools[loc.difficulty]?.push(loc);
+  }
+  // Sort each pool alphabetically for consistency
+  for (const pool of Object.values(pools)) {
+    pool.sort((a, b) => a.id.localeCompare(b.id));
   }
 
-  return { locations: selected.slice(0, 5), date };
+  const pick = (diff: string, offset: number): Location => {
+    const pool = pools[diff] ?? [];
+    if (pool.length === 0) throw new Error(`No locations for difficulty: ${diff}`);
+    return pool[((offset % pool.length) + pool.length) % pool.length] as Location;
+  };
+
+  // Pick one per slot: [easy, medium, medium, hard, extreme]
+  const selected = [
+    pick('easy',    dayIndex),
+    pick('medium',  2 * dayIndex),
+    pick('medium',  2 * dayIndex + 1),
+    pick('hard',    dayIndex),
+    pick('extreme', dayIndex),
+  ];
+
+  // Coastal city rule: max 2 coastal per day
+  // If more than 2, swap extras with next non-coastal in same pool
+  let coastalCount = selected.filter(isCoastalCity).length;
+  if (coastalCount > 2) {
+    for (let i = 0; i < selected.length && coastalCount > 2; i++) {
+      if (!isCoastalCity(selected[i]!)) continue;
+      const diff = selected[i]!.difficulty;
+      const pool = pools[diff] ?? [];
+      const usedIds = new Set(selected.map((l) => l.id));
+      // Find next non-coastal in same pool not already selected
+      const replacement = pool.find((l) => !isCoastalCity(l) && !usedIds.has(l.id));
+      if (replacement) {
+        selected[i] = replacement;
+        coastalCount--;
+      }
+    }
+  }
+
+  return { locations: selected, date };
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -122,6 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const mode: GameMode = parsed.data.mode ?? 'normal';
     const { locations: selectedLocations, date } = getDailyLocations();
     const sessionId = randomUUID();
+    const db = getDb();
 
     await db.insert(sessions).values({ id: sessionId });
 

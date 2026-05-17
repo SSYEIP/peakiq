@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/db/client';
+import { getDb } from '@/db/client';
 
 export const dynamic = 'force-dynamic';
 import { leaderboardEntries, sessionRounds, sessions } from '@/db/schema';
@@ -13,7 +13,16 @@ const SubmitSchema = z.object({
 });
 
 export async function GET(): Promise<NextResponse> {
+  if (!process.env.TURSO_DATABASE_URL?.trim()) {
+    return NextResponse.json([], {
+      headers: {
+        'Cache-Control': 's-maxage=60, stale-while-revalidate=120',
+      },
+    });
+  }
+
   try {
+    const db = getDb();
     const entries = await db
       .select()
       .from(leaderboardEntries)
@@ -47,6 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const { playerName, sessionId } = parsed.data;
+    const db = getDb();
 
     // Check session exists and is completed
     const [session] = await db
